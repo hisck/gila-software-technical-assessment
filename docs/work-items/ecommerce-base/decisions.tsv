@@ -1,0 +1,10 @@
+ts	phase	decision	why	evidence	result
+2026-11-23	discovery	Use source CSV metadata for the download date	Reviewer asks for the actual date	README.md	Verified Nov 23, 2026 BRT
+2026-11-23	specification	Use separate databases and a transactional outbox per service	Preserve writes and purchase state through dependency interruptions	design.md	Go, PostgreSQL, RabbitMQ and Redis selected
+2026-11-23	specification	Preserve valid source rows and existing SKUs	The sample includes duplicates and invalid values	requirements.md	First valid row wins with line-based issues
+2026-11-23	implementation	Use isolated implementer scopes for catalog/search, checkout and interface	The tasks share a frozen contract with disjoint file ownership	tasks.md	All four services and storefront integrated
+2026-11-23	review	Check category own properties and give actionable price recovery	Independent review found a render crash and repeatable checkout rejection	../../../frontend/src/components/Storefront.tsx;../../../backend/internal/catalog/inventory.go	Guarded lookup and corrected buyer guidance
+2026-11-23	configuration	Resume with the project configuration	The user enabled PStack and required Ponytail full	../../../.ai-development.json	Discovered one Git root and retained local delivery settings
+2026-11-23	review	Skip the Search publisher and refresh cache on read	Search emits no events and the server supports expiry on read	../../../backend/internal/platform/service.go;../../../backend/internal/platform/cache.go	Reviewed independently and verified on the final Docker build
+2026-11-23	verification	Model the actual Orders transition selector	An early terminal decline can strand reserved stock	../../../.agents/skills/verify-checkout-invariants/SKILL.md	Six reachable states and 30 edges passed after a deliberate fault failed
+2026-11-23	verification	Pin the Compose file and isolate disposable verification data	An implicit Compose override can change teardown scope	../../../.agents/skills/verify-fieldwork/SKILL.md	All eight services healthy, five smoke groups passed, temporary resources removed

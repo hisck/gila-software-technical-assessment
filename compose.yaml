@@ -1,0 +1,122 @@
+name: gila-commerce
+
+x-service: &service
+  restart: unless-stopped
+  init: true
+  depends_on:
+    postgres:
+      condition: service_healthy
+    broker:
+      condition: service_started
+  healthcheck:
+    test: [CMD, wget, -q, --spider, "http://127.0.0.1:8080/healthz"]
+    interval: 5s
+    timeout: 3s
+    retries: 6
+  stop_grace_period: 20s
+
+x-service-env: &service-env
+  AMQP_URL: amqp://commerce:commerce-local@broker:5672/
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres-local
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres.sql:/docker-entrypoint-initdb.d/01-commerce.sql:ro
+    healthcheck:
+      test: [CMD, pg_isready, -h, "127.0.0.1", -U, postgres]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  broker:
+    image: rabbitmq:4.1-alpine
+    hostname: broker
+    environment:
+      RABBITMQ_DEFAULT_USER: commerce
+      RABBITMQ_DEFAULT_PASS: commerce-local
+    volumes:
+      - broker-data:/var/lib/rabbitmq
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, check_port_connectivity]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: [redis-server, --maxmemory, 64mb, --maxmemory-policy, allkeys-lru, --save, "", --appendonly, "no"]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+    restart: unless-stopped
+
+  catalog:
+    <<: *service
+    build:
+      context: ./backend
+      args:
+        SERVICE: catalog
+    environment:
+      <<: *service-env
+      DATABASE_URL: postgres://catalog:catalog-local@postgres:5432/catalog?sslmode=disable
+
+  search:
+    <<: *service
+    build:
+      context: ./backend
+      args:
+        SERVICE: search
+    environment:
+      <<: *service-env
+      DATABASE_URL: postgres://search:search-local@postgres:5432/search?sslmode=disable
+      REDIS_ADDR: redis:6379
+
+  orders:
+    <<: *service
+    build:
+      context: ./backend
+      args:
+        SERVICE: orders
+    environment:
+      <<: *service-env
+      DATABASE_URL: postgres://orders:orders-local@postgres:5432/orders?sslmode=disable
+      REDIS_ADDR: redis:6379
+
+  payments:
+    <<: *service
+    build:
+      context: ./backend
+      args:
+        SERVICE: payments
+    environment:
+      <<: *service-env
+      DATABASE_URL: postgres://payments:payments-local@postgres:5432/payments?sslmode=disable
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "127.0.0.1:${SHOP_PORT:-8080}:8080"
+    depends_on:
+      - catalog
+      - search
+      - orders
+    healthcheck:
+      test: [CMD, wget, -q, --spider, "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  broker-data:
