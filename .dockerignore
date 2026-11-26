@@ -1,0 +1,12 @@
+.git
+.agents
+.codex
+.aws
+backend
+docs
+scripts
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/next-env.d.ts
+Code Challenge..pdf
